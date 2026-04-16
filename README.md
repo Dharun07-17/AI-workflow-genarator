@@ -1,15 +1,187 @@
+
+
 # Flowberry
-
-Flowberry is an event‑driven AI workflow automation platform where **Fizz** turns a natural‑language request into a multi‑step workflow (search → summarize → email → calendar, etc.). Steps run on dedicated workers via RabbitMQ with retries, DLQ handling, and full execution traceability.
 ---
-## Highlights
+Flowberry is an **event-driven AI workflow automation platform** where natural language requests are converted into structured, multi-step workflows (e.g., search → summarize → email → calendar). Execution is handled asynchronously via a **queue-based worker system** with full observability, retries, and idempotent processing.
 
-- Prompt‑to‑workflow planning
-- Human‑in‑the‑loop approval for outbound actions
-- Pluggable integrations (Gmail, Google Calendar, Notion, etc.)
-- Execution logs, retries, and DLQ
-- Email‑OTP MFA for login
 ---
+
+## Problem Statement
+
+Modern automation tools tightly couple request execution with backend APIs, leading to:
+
+* Poor scalability under concurrent workloads
+* Blocking operations inside APIs
+* Lack of fault tolerance and retry control
+* No clear execution traceability
+* Security risks with sensitive data exposure
+
+---
+
+## Solution
+
+Flowberry solves this using an **event-driven distributed architecture**:
+
+* API only creates and publishes workflow events
+* Workers process tasks asynchronously via queue
+* Tasks are executed atomically and independently
+* System supports retries, DLQ, and idempotency
+* Full observability across API + workers
+
+---
+
+## Tech Stack
+
+**Backend**
+
+* Python / FastAPI (or Node equivalent)
+* PostgreSQL
+* RabbitMQ (or Redis Queue alternative)
+* SQLAlchemy ORM
+
+**Frontend**
+
+* React + Vite
+
+**Infra**
+
+* Docker + Docker Compose
+* Prometheus + Grafana
+* Loki + FluentBit (logging)
+* OpenTelemetry (tracing)
+
+---
+
+## Architecture
+
+### System Style
+
+* Event-driven architecture (EDA)
+* Worker-based asynchronous processing
+* Message queue backbone (RabbitMQ / Redis Streams)
+
+---
+
+### Design Patterns Used
+
+* **MVC Pattern**
+
+  * Controllers → API layer
+  * Services → business logic
+  * Models → DB schema
+
+* **Singleton Pattern**
+
+  * Database connection pool (single shared instance per service)
+
+* **Observer Pattern**
+
+  * Event publishing → queue triggers workers
+
+* **Repository Pattern**
+
+  * DB abstraction layer for clean separation
+
+---
+
+## Workflow Execution Flow
+
+1. User submits prompt via API
+2. API converts it into workflow graph
+3. Workflow is persisted in DB
+4. Events are published to queue
+5. Workers consume tasks atomically
+6. Each step updates execution state
+7. Results aggregated and returned
+
+---
+
+## Queue & Worker System
+
+* Queue: RabbitMQ / Redis Streams
+* Minimum **2 workers per service** for parallelism
+* Each task:
+
+  * Locked atomically
+  * Processed once (idempotent key enforced)
+  * Retries on failure
+  * Sent to DLQ after max retries
+
+---
+
+## Idempotency Strategy
+
+* Every task has a unique `execution_id`
+* Worker checks DB before processing:
+
+  * If already processed → skip
+* Prevents duplicate execution in retries or crashes
+
+---
+
+## Security
+
+### Authentication
+
+* JWT Access Token (short-lived)
+* Refresh Token (long-lived)
+* Optional Email OTP MFA
+
+### RBAC
+
+* Roles:
+
+  * `admin`
+  * `user`
+
+### Data Protection
+
+* PII encrypted at rest (AES/Fernet)
+* Sensitive data never exposed to frontend APIs
+* Only masked or tokenized outputs returned
+
+---
+
+## Error Handling
+
+* Centralized API error middleware
+* Worker retry mechanism with exponential backoff
+* Dead Letter Queue (DLQ) for failed jobs
+* Structured error logs with trace IDs
+
+---
+
+## Observability
+
+### Logging
+
+* Structured logs (JSON)
+* FluentBit → Loki pipeline
+
+### Metrics
+
+* Prometheus scraping `/metrics`
+
+### Tracing
+
+* OpenTelemetry instrumentation
+* Distributed trace across:
+
+  * API
+  * Workers
+  * Queue events
+
+### Visualization
+
+* Grafana dashboards:
+
+  * API latency
+  * Queue depth
+  * Worker throughput
+  * Failure rates
+
+---
+
 ## Project Structure
 
 ```text
@@ -28,98 +200,106 @@ flowberry/
       services/
       utils/
       workers/
-    alembic/
   frontend/
     src/
       components/
-      hooks/
-      layouts/
       pages/
       services/
       store/
-      types/
   infra/
     grafana/
     loki/
-    otel/
     prometheus/
-  docs/diagrams/
+    otel/
   docker-compose.yml
-  .env.example
   run.ps1
+  .env.example
 ```
----
-## Architecture
 
-- **Style**: Event‑driven, worker‑based execution
-- **API role**: create plan, persist workflow, publish jobs
-- **Patterns**: MVC, Repository, Service, Observer
-- **Workers**: isolated queues with retry + DLQ, idempotent processing
 ---
-## Services
 
-`docker-compose.yml` includes:
-- `frontend`
-- `api`
-- `worker-email`
-- `worker-calendar`
-- `postgres`
-- `rabbitmq`
-- `prometheus`
-- `loki`
-- `grafana`
-- `otel-collector`
+## Dockerized Setup
+
+All services run inside a **single Docker network** using Docker Compose.
+
+### Services
+
+* frontend
+* api
+* worker-email
+* worker-calendar
+* worker-core (minimum 2 replicas)
+* postgres
+* rabbitmq
+* redis (optional fallback queue)
+* prometheus
+* grafana
+* loki
+* otel-collector
+
 ---
-## Setup
 
-1. Copy env:
+## Run Instructions
+
+### 1. Clone & setup env
+
 ```bash
 cp .env.example .env
 ```
+
 ---
-2. Set secrets in `.env`:
-- `JWT_SECRET`
-- `FERNET_KEY`
----
-3. Run the stack (detached):
+
+### 2. Start full stack
+
 ```powershell
 .\run.ps1
 ```
 
-By default, `run.ps1` builds the images, starts all services in the background, and seeds the database.
----
-## Access
+This will:
 
-- Frontend: `http://localhost:5173`
-- API docs: `http://localhost:8000/docs`
-- RabbitMQ UI: `http://localhost:15672`
-- Grafana: `http://localhost:3000`
----
-## Auth + MFA (Email OTP)
+* Build all images
+* Start all services in a single network
+* Run DB migrations
+* Start workers (minimum 2 instances)
 
-Flowberry uses JWT access + refresh tokens and optional **email‑OTP MFA** on login.
 ---
-Flow:
-1. `POST /api/v1/auth/login`
-2. If MFA is enabled → returns `mfa_token`
-3. `POST /api/v1/auth/mfa/request` (send OTP to chosen email via Gmail integration)
-4. `POST /api/v1/auth/mfa/verify`
 
-You can enable/disable MFA in the **Security** page.
+## Access Points
+
+* Frontend → `http://localhost:5173`
+* API Docs → `http://localhost:8000/docs`
+* RabbitMQ → `http://localhost:15672`
+* Grafana → `http://localhost:3000`
+
 ---
-## Integrations
 
-Integrations are stored encrypted and never returned to the UI. OAuth is supported for Gmail and Google Calendar.
+## Event Driven Architecture Notes
 
-- Gmail: used to send email drafts and MFA OTP
-- Google Calendar: create events
+* API never performs long-running tasks
+* All execution is async via queue
+* Workers are stateless and horizontally scalable
+* System supports horizontal scaling easily (add more workers)
+
 ---
-## Observability
 
-- Prometheus metrics at `/metrics`
-- Loki for logs
-- OpenTelemetry export to `otel-collector`
+## Additional Enhancements (Optional)
+
+* Kubernetes deployment (minikube/local k8s)
+* Horizontal Pod Autoscaler (HPA) for workers
+* Circuit breaker for external APIs
+* Rate limiting per user/IP
+* Audit logs for admin actions
+
 ---
+
 ## Notes
 
-This repo is production‑oriented but still a starter. Replace mock report generation with real sources and extend integration logic as needed.
+This system is designed to be **production-grade scalable architecture**:
+
+* Fully decoupled services
+* Queue-based execution
+* Strong observability
+* Secure by design
+* Horizontally scalable workers
+
+
