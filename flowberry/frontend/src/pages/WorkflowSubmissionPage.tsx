@@ -6,15 +6,23 @@ export default function WorkflowSubmissionPage() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [workflowId, setWorkflowId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   async function onSubmit() {
     if (!prompt.trim()) return;
     setLoading(true);
+    setError(null);
     try {
       const { data } = await api.post<{ data: { workflow_id: string } }>("/workflows", { prompt });
       setWorkflowId(data.data.workflow_id);
       navigate(`/workflows/${data.data.workflow_id}`);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.error?.message ||
+        err?.response?.data?.message ||
+        "Failed to create workflow. Please log in again.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -36,6 +44,7 @@ export default function WorkflowSubmissionPage() {
       >
         {loading ? "Submitting..." : "Run with Fizz"}
       </button>
+      {error ? <p className="text-sm text-red-300">{error}</p> : null}
       {workflowId ? <p className="text-sm text-zinc-400">Workflow queued: {workflowId}</p> : null}
     </div>
   );

@@ -21,9 +21,19 @@ class WorkerConsumer:
 
     async def run(self) -> None:
         ACTIVE_WORKER_COUNT.labels(worker=self.worker_name).set(1)
-        connection = await aio_pika.connect_robust(settings.rabbitmq_url)
-        channel = await connection.channel()
-        await channel.set_qos(prefetch_count=1)
+        connection = None
+        channel = None
+        retry = 0
+        while connection is None:
+            try:
+                connection = await aio_pika.connect_robust(settings.rabbitmq_url)
+                channel = await connection.channel()
+                await channel.set_qos(prefetch_count=1)
+            except Exception as exc:
+                retry += 1
+                wait = min(10, 1 + retry)
+                print(f"[{self.worker_name}] RabbitMQ connect failed ({exc}). Retrying in {wait}s")
+                await asyncio.sleep(wait)
 
         for queue_name in self.queues:
             queue = await channel.declare_queue(queue_name, durable=True)
@@ -54,8 +64,8 @@ class WorkerConsumer:
                 if step and step.depends_on_step_id:
                     dep = db.query(WorkflowStep).filter(WorkflowStep.id == step.depends_on_step_id).first()
                     if dep and dep.status != "completed":
-                        # Dependency not ready. Requeue through retry exchange pattern.
-                        await self._retry_or_dlq(channel, queue_name, payload, job, "DEPENDENCY_NOT_READY", log_repo)
+                        # Dependency not ready. Requeue without consuming retries.
+                        await self._requeue_dependency(channel, queue_name, payload, job, log_repo)
                         return
 
                 job_repo.mark_running(job)
@@ -67,7 +77,10 @@ class WorkerConsumer:
                 output = await self.process_task(queue_name, payload)
 
                 if step:
-                    step.status = "completed"
+                    if isinstance(output, dict) and "_step_status" in output:
+                        step.status = output.pop("_step_status")
+                    else:
+                        step.status = "completed"
                     step.completed_at = datetime.utcnow()
                     step.output_payload = json.dumps(output)
                 job_repo.mark_done(job)
@@ -126,3 +139,25 @@ class WorkerConsumer:
 
     async def process_task(self, queue_name: str, payload: dict) -> dict:
         raise NotImplementedError
+
+    async def _requeue_dependency(
+        self,
+        channel,
+        queue_name: str,
+        payload: dict,
+        job: Job,
+        log_repo: LogRepository,
+    ) -> None:
+        # Simple backoff to avoid tight loops
+        await asyncio.sleep(2)
+        await channel.default_exchange.publish(
+            aio_pika.Message(body=json.dumps(payload).encode(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
+            routing_key=queue_name,
+        )
+        log_repo.create(
+            workflow_id=job.workflow_id,
+            job_id=job.id,
+            step_id=job.workflow_step_id,
+            level="INFO",
+            message="Dependency not ready, requeued",
+        )

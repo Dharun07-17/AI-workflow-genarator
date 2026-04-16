@@ -11,6 +11,8 @@ from app.services.fizz_planning_service import FizzPlanningService
 from app.services.queue_publisher_service import QueuePublisherService
 from app.services.workflow_execution_service import WorkflowExecutionService
 from app.events.listeners import observer_singleton
+from app.models.job import Job
+from uuid import uuid4
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 
@@ -25,7 +27,7 @@ async def create_workflow(
         raise AppException("INVALID_PROMPT", "Prompt cannot be empty", 400)
 
     planner = FizzPlanningService()
-    plan = planner.create_plan(payload.prompt)
+    plan = await planner.create_plan(payload.prompt)
 
     publisher = QueuePublisherService()
     executor = WorkflowExecutionService(db=db, publisher=publisher, observer=observer_singleton)
@@ -80,6 +82,7 @@ def get_steps(
                 "step_type": s.step_type,
                 "status": s.status,
                 "depends_on_step_id": s.depends_on_step_id,
+                "output_payload": s.output_payload,
             }
             for s in steps
         ],
@@ -143,3 +146,49 @@ async def retry_workflow(
     await publisher.close()
 
     return {"success": True, "data": {"queued_steps": len(steps)}, "message": "Retry queued"}
+
+
+@router.post("/{workflow_id}/steps/{step_id}/approve-email")
+async def approve_email_step(
+    workflow_id: str,
+    step_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    repo = WorkflowRepository(db)
+    workflow = repo.get_workflow(workflow_id, None if user.role == "admin" else user.user_id)
+    if not workflow:
+        raise AppException("WORKFLOW_NOT_FOUND", "Workflow does not exist", 404)
+
+    step = next((s for s in repo.list_steps(workflow_id) if s.id == step_id), None)
+    if not step or step.step_type != "email-send":
+        raise AppException("STEP_NOT_FOUND", "Email step not found", 404)
+
+    job = Job(
+        id=str(uuid4()),
+        workflow_id=workflow_id,
+        workflow_step_id=step_id,
+        queue_name="email-send",
+        worker_type="email-send",
+        idempotency_key=f"{workflow_id}:{step_id}:approve:{uuid4()}",
+        status="queued",
+    )
+    repo.create_jobs([job])
+    step.status = "queued"
+    db.commit()
+
+    publisher = QueuePublisherService()
+    await publisher.publish_job(
+        queue_name="email-send",
+        payload={
+            "job_id": job.id,
+            "workflow_id": workflow_id,
+            "workflow_step_id": step_id,
+            "idempotency_key": job.idempotency_key,
+            "approve": True,
+        },
+        idempotency_key=job.idempotency_key,
+    )
+    await publisher.close()
+
+    return {"success": True, "data": {"approved": step_id}, "message": "Email send approved"}

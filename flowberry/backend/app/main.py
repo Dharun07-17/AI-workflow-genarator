@@ -7,6 +7,8 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.controllers.auth_controller import router as auth_router
 from app.controllers.workflow_controller import router as workflow_router
 from app.controllers.admin_controller import router as admin_router
+from app.controllers.integrations_controller import router as integrations_router
+from app.controllers.ai_controller import router as ai_router
 from app.core.config import settings
 from app.events.listeners import register_default_listeners
 from app.middleware.exception_middleware import (
@@ -31,6 +33,8 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.include_router(auth_router, prefix=settings.api_prefix)
 app.include_router(workflow_router, prefix=settings.api_prefix)
 app.include_router(admin_router, prefix=settings.api_prefix)
+app.include_router(integrations_router, prefix=settings.api_prefix)
+app.include_router(ai_router, prefix=settings.api_prefix)
 
 app.add_exception_handler(AppException, app_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)

@@ -5,6 +5,7 @@ import WorkflowSubmissionPage from "./pages/WorkflowSubmissionPage";
 import WorkflowDetailPage from "./pages/WorkflowDetailPage";
 import WorkflowLogsPage from "./pages/WorkflowLogsPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/workflows" element={<WorkflowSubmissionPage />} />
           <Route path="/workflows/:id" element={<WorkflowDetailPage />} />
           <Route path="/logs" element={<WorkflowLogsPage />} />
+          <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
         </Route>
 

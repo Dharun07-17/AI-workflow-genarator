@@ -21,6 +21,7 @@ export interface WorkflowStep {
   step_type: string;
   status: string;
   depends_on_step_id?: string | null;
+  output_payload?: string | null;
 }
 
 export interface WorkflowLog {

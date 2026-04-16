@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.workflow import Workflow
 from app.models.workflow_step import WorkflowStep
 from app.models.job import Job
+from app.models.execution_log import ExecutionLog
 
 
 class WorkflowRepository:
@@ -38,3 +39,10 @@ class WorkflowRepository:
         if row:
             row.status = status
             self.db.commit()
+
+    def delete_workflow(self, workflow_id: str) -> None:
+        self.db.query(ExecutionLog).filter(ExecutionLog.workflow_id == workflow_id).delete()
+        self.db.query(Job).filter(Job.workflow_id == workflow_id).delete()
+        self.db.query(WorkflowStep).filter(WorkflowStep.workflow_id == workflow_id).delete()
+        self.db.query(Workflow).filter(Workflow.id == workflow_id).delete()
+        self.db.commit()

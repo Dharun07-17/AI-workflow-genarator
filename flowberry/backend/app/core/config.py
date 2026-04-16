@@ -16,6 +16,13 @@ class Settings(BaseSettings):
 
     fernet_key: str = "change_me_32_byte_base64_key"
 
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+
+    ollama_url: str | None = "http://ollama:11434"
+    ollama_model: str = "llama2"
+
     otel_exporter_otlp_endpoint: str = "http://otel-collector:4317"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboardPage() {
+  const navigate = useNavigate();
   const { data } = useQuery({
     queryKey: ["admin-workflows"],
     queryFn: async () => {
@@ -10,6 +12,11 @@ export default function AdminDashboardPage() {
     },
   });
 
+  async function onDelete(id: string) {
+    await api.delete(`/admin/workflows/${id}`);
+    window.location.reload();
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Admin Dashboard</h2>
@@ -17,9 +24,25 @@ export default function AdminDashboardPage() {
         <p className="mb-4 text-sm text-zinc-400">All workflows (admin only)</p>
         <div className="space-y-2 text-sm">
           {(data ?? []).map((row) => (
-            <div key={row.id} className="rounded border border-zinc-800 p-3">
-              <p>{row.id}</p>
-              <p className="text-zinc-400">user: {row.user_id} | status: {row.status}</p>
+            <div key={row.id} className="rounded border border-zinc-800 p-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">{row.id}</p>
+                <p className="text-zinc-400">user: {row.user_id} | status: {row.status}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate(`/workflows/${row.id}`)}
+                  className="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-200 hover:bg-zinc-800"
+                >
+                  View
+                </button>
+                <button
+                  onClick={() => onDelete(row.id)}
+                  className="rounded border border-red-600 px-3 py-1 text-xs text-red-400 hover:bg-red-950"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

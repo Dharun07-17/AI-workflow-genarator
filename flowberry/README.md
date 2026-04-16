@@ -48,7 +48,7 @@ flowberry/
   - MVC (controllers + schemas/views + model domain)
   - Singleton DB manager (`DatabaseManager`)
   - Observer pattern (`WorkflowObserver`)
-  - Repository pattern (`UserRepository`, `WorkflowRepository`, `LogRepository`, `JobRepository`)
+  - Repository pattern (`UserRepository`, `WorkflowRepository`, `LogRepository`, `JobRepository`, `IntegrationRepository`)
   - Service layer (`FizzPlanningService`, `WorkflowExecutionService`, `QueuePublisherService`, `NotificationService`)
 
 ## Backend Implementation
@@ -58,6 +58,7 @@ flowberry/
   - `AuthController`: login, MFA verify, refresh, me.
   - `WorkflowController`: create/get/steps/logs/retry.
   - `AdminController`: admin workflow listing.
+  - `IntegrationsController`: manage API/OAuth credentials (encrypted).
 - **Security**:
   - JWT access tokens, refresh token rotation, TOTP flow.
   - RBAC (`user`, `admin`).
@@ -74,10 +75,12 @@ flowberry/
   - Workflow Submission
   - Workflow Detail
   - Workflow Logs
+  - Integrations
   - Admin Dashboard
 - **Capabilities**:
   - Submit natural-language workflow prompts
   - Poll workflow status/steps/logs
+  - Manage OAuth / API key integrations with password-confirmed delete
   - Role-aware admin page
 
 ## Workers and Queueing
@@ -104,6 +107,7 @@ Required domain models are implemented:
 - `WorkflowStep`
 - `Job`
 - `ExecutionLog`
+- `Integration`
 
 See ER diagram: `docs/diagrams/er.md`.
 
@@ -123,11 +127,6 @@ See ER diagram: `docs/diagrams/er.md`.
 - Grafana for dashboards
 - OpenTelemetry tracing export via OTLP (`otel-collector`)
 
-Example telemetry hooks:
-- `app/observability/metrics.py`
-- `app/observability/tracing.py`
-- `app/observability/logging_config.py`
-
 ## API Contract
 
 Base path: `/api/v1`
@@ -141,6 +140,9 @@ Base path: `/api/v1`
 - `GET /workflows/{id}/steps`
 - `POST /workflows/{id}/retry`
 - `GET /admin/workflows`
+- `GET /integrations`
+- `POST /integrations`
+- `DELETE /integrations/{id}`
 
 Success format:
 

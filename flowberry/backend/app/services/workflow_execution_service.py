@@ -45,7 +45,13 @@ class WorkflowExecutionService:
                 step_type=step["type"],
                 depends_on_step_id=step.get("depends_on_step_id"),
                 status="queued",
-                input_payload=json.dumps({"prompt": prompt}),
+                input_payload=json.dumps(
+                    {
+                        "prompt": prompt,
+                        "tool": step.get("tool"),
+                        "input": step.get("input"),
+                    }
+                ),
             )
             for step in plan["steps"]
         ]
