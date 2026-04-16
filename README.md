@@ -279,19 +279,7 @@ This will:
 * All execution is async via queue
 * Workers are stateless and horizontally scalable
 * System supports horizontal scaling easily (add more workers)
-
 ---
-
-## Additional Enhancements (Optional)
-
-* Kubernetes deployment (minikube/local k8s)
-* Horizontal Pod Autoscaler (HPA) for workers
-* Circuit breaker for external APIs
-* Rate limiting per user/IP
-* Audit logs for admin actions
-
----
-
 ## Notes
 
 This system is designed to be **production-grade scalable architecture**:
