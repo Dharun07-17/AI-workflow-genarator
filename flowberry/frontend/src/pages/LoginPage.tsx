@@ -169,7 +169,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 disabled
-                className="flex w-full items-center justify-center gap-3 rounded border border-zinc-700 bg-zinc-800 px-3 py-3 text-sm text-zinc-300 opacity-60"
+                className="flex w-full items-center justify-center gap-3 rounded border border-zinc-700 bg-zinc-800 px-3 py-3 text-sm text-white opacity-60"
                 title="Set GOOGLE_OAUTH_CLIENT_ID to enable Google sign-in."
               >
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded bg-white text-sm font-semibold text-zinc-900">

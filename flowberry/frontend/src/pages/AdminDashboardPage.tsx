@@ -21,18 +21,18 @@ export default function AdminDashboardPage() {
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Admin Dashboard</h2>
       <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 p-4">
-        <p className="mb-4 text-sm text-zinc-400">All workflows (admin only)</p>
+        <p className="mb-4 text-sm text-white/70">All workflows (admin only)</p>
         <div className="space-y-2 text-sm">
           {(data ?? []).map((row) => (
             <div key={row.id} className="rounded border border-zinc-800 p-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">{row.id}</p>
-                <p className="text-zinc-400">user: {row.user_id} | status: {row.status}</p>
+                <p className="text-white/70">user: {row.user_id} | status: {row.status}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate(`/workflows/${row.id}`)}
-                  className="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-200 hover:bg-zinc-800"
+                  className="rounded border border-zinc-700 px-3 py-1 text-xs text-white hover:bg-zinc-800"
                 >
                   View
                 </button>

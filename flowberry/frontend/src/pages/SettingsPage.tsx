@@ -42,11 +42,11 @@ function ColorField({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-zinc-400">{label}</p>
+        <p className="text-xs text-white/70">{label}</p>
         <div className="flex items-center gap-2">
           <input
             type="text"
-            className="w-24 rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-100"
+            className="w-24 rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-white"
             value={safe}
             onChange={(e) => onChange(e.target.value)}
             spellCheck={false}
@@ -143,20 +143,20 @@ export default function SettingsPage() {
     <div className="space-y-8">
       <div>
         <h2 className="text-xl font-semibold">Settings</h2>
-        <p className="text-sm text-zinc-400">Theme customization and account security.</p>
+        <p className="text-sm text-white/70">Theme customization and account security.</p>
       </div>
 
       <section className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold">Theme</h3>
-          <p className="text-sm text-zinc-400">Choose a preset or build your own. Saved to this browser.</p>
+          <p className="text-sm text-white/70">Choose a preset or build your own. Saved to this browser.</p>
         </div>
 
         <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 p-4 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-medium">Preset Themes</p>
             <button
-              className="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-200 hover:bg-zinc-800"
+              className="rounded border border-zinc-700 px-3 py-1 text-xs text-white hover:bg-zinc-800"
               onClick={() => setTheme(defaultTheme())}
             >
               Reset
@@ -177,7 +177,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">{preset.name}</p>
                     {active ? (
-                      <span className="rounded px-2 py-1 text-[10px] text-zinc-200" style={{ background: "var(--fb-accent-soft)" }}>
+                      <span className="rounded px-2 py-1 text-[10px] text-white" style={{ background: "var(--fb-accent-soft)" }}>
                         Active
                       </span>
                     ) : null}
@@ -195,7 +195,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">Custom Theme</p>
             <button
-              className="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-200 hover:bg-zinc-800"
+              className="rounded border border-zinc-700 px-3 py-1 text-xs text-white hover:bg-zinc-800"
               onClick={() => setTheme({ ...presetToTheme(selectedPreset.id), mode: "custom", presetId: undefined })}
             >
               Start From {selectedPreset.name}
@@ -207,10 +207,10 @@ export default function SettingsPage() {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-zinc-400">Background</p>
+                <p className="text-xs text-white/70">Background</p>
                 <div className="flex items-center gap-2 text-xs">
                   <button
-                    className={`rounded px-2 py-1 ${bgMode === "solid" ? "text-white" : "text-zinc-300"} border border-zinc-700`}
+                    className={`rounded px-2 py-1 ${bgMode === "solid" ? "text-white" : "text-white/80"} border border-zinc-700`}
                     style={bgMode === "solid" ? { background: "var(--fb-accent-soft)" } : undefined}
                     onClick={() =>
                       setBackground({
@@ -222,7 +222,7 @@ export default function SettingsPage() {
                     Solid
                   </button>
                   <button
-                    className={`rounded px-2 py-1 ${bgMode === "gradient" ? "text-white" : "text-zinc-300"} border border-zinc-700`}
+                    className={`rounded px-2 py-1 ${bgMode === "gradient" ? "text-white" : "text-white/80"} border border-zinc-700`}
                     style={bgMode === "gradient" ? { background: "var(--fb-accent-soft)" } : undefined}
                     onClick={() =>
                       setBackground({
@@ -246,8 +246,8 @@ export default function SettingsPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-zinc-400">Angle</p>
-                    <p className="text-xs text-zinc-300">{gradientBg?.angle ?? 145} deg</p>
+                    <p className="text-xs text-white/70">Angle</p>
+                    <p className="text-xs text-white/80">{gradientBg?.angle ?? 145} deg</p>
                   </div>
                   <input
                     type="range"
@@ -298,9 +298,9 @@ export default function SettingsPage() {
               )}
 
               <div className="space-y-2">
-                <p className="text-xs text-zinc-400">Preview</p>
+                <p className="text-xs text-white/70">Preview</p>
                 <ThemePreview accent={theme.accent} background={theme.background} />
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-white/60">
                   {isCustom ? "Custom theme is active." : "Preset theme is active. Change anything above to switch to custom."}
                 </p>
               </div>
@@ -312,7 +312,7 @@ export default function SettingsPage() {
       <section className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold">Security</h3>
-          <p className="text-sm text-zinc-400">MFA and account protections.</p>
+          <p className="text-sm text-white/70">MFA and account protections.</p>
         </div>
 
         <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 p-4 space-y-3">
@@ -334,7 +334,7 @@ export default function SettingsPage() {
               Enable Email MFA
             </button>
           ) : (
-            <button onClick={disableMfa} className="rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-200">
+            <button onClick={disableMfa} className="rounded border border-zinc-700 px-3 py-1 text-sm text-white">
               Disable MFA
             </button>
           )}

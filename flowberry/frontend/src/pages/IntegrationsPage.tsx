@@ -130,33 +130,33 @@ export default function IntegrationsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">Integrations</h2>
-        <p className="text-sm text-zinc-400">Store OAuth JSON or API keys. Secrets are encrypted and never returned to the UI.</p>
+        <p className="text-sm text-white/70">Store OAuth JSON or API keys. Secrets are encrypted and never returned to the UI.</p>
       </div>
 
       <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 p-4 space-y-4">
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="text-xs text-zinc-400">Provider</label>
-            <select className="w-full rounded border border-zinc-700 bg-zinc-800 p-2" value={provider} onChange={(e) => setProvider(e.target.value)}>
+            <label className="text-xs text-white/70">Provider</label>
+            <select className="w-full rounded border border-zinc-700 bg-zinc-800 p-2 text-white" value={provider} onChange={(e) => setProvider(e.target.value)}>
               {PROVIDERS.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-xs text-zinc-400">Display name</label>
-            <input className="w-full rounded border border-zinc-700 bg-zinc-800 p-2" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+            <label className="text-xs text-white/70">Display name</label>
+            <input className="w-full rounded border border-zinc-700 bg-zinc-800 p-2 text-white placeholder:text-white/60" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="text-xs text-zinc-400">OAuth JSON (optional)</label>
-            <textarea className="h-32 w-full rounded border border-zinc-700 bg-zinc-800 p-2" value={oauthJson} onChange={(e) => setOauthJson(e.target.value)} />
+            <label className="text-xs text-white/70">OAuth JSON (optional)</label>
+            <textarea className="h-32 w-full rounded border border-zinc-700 bg-zinc-800 p-2 text-white placeholder:text-white/60" value={oauthJson} onChange={(e) => setOauthJson(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-zinc-400">API Key (optional)</label>
-            <input className="w-full rounded border border-zinc-700 bg-zinc-800 p-2" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+            <label className="text-xs text-white/70">API Key (optional)</label>
+            <input className="w-full rounded border border-zinc-700 bg-zinc-800 p-2 text-white placeholder:text-white/60" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
           </div>
         </div>
 
@@ -164,8 +164,8 @@ export default function IntegrationsPage() {
           <button
             disabled={loading}
             onClick={onCheck}
-            className="rounded border px-4 py-2 text-sm disabled:opacity-50"
-            style={{ borderColor: "var(--fb-accent-border)", color: "var(--fb-accent)" }}
+            className="rounded border px-4 py-2 text-sm text-white disabled:opacity-50"
+            style={{ borderColor: "var(--fb-accent-border)" }}
           >
             {loading ? "Checking..." : "Check Integration"}
           </button>
@@ -195,7 +195,7 @@ export default function IntegrationsPage() {
             type="password"
             autoComplete="current-password"
             placeholder="Password required to delete"
-            className="flex-1 rounded border border-zinc-700 bg-zinc-800 p-2"
+            className="flex-1 rounded border border-zinc-700 bg-zinc-800 p-2 text-white placeholder:text-white/60"
             value={deletePassword}
             onChange={(e) => setDeletePassword(e.target.value)}
           />
@@ -205,7 +205,7 @@ export default function IntegrationsPage() {
             <div key={item.id} className="flex items-center justify-between rounded border border-zinc-800 p-3">
               <div>
                 <p className="text-sm font-medium">{item.display_name}</p>
-                <p className="text-xs text-zinc-400">{item.provider}</p>
+                <p className="text-xs text-white/70">{item.provider}</p>
               </div>
               <div className="flex items-center gap-2">
                 {item.has_oauth_token ? (

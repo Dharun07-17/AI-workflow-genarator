@@ -71,7 +71,7 @@ export default function WorkflowSubmissionPage() {
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Create Workflow</h2>
       <textarea
-        className="h-40 w-full rounded border border-zinc-700 bg-zinc-900 p-4 text-zinc-100"
+        className="h-40 w-full rounded border border-zinc-700 bg-zinc-900 p-4 text-white placeholder:text-white/60"
         placeholder="Summarize today's reports, email them, and schedule a meeting tomorrow at 4 PM"
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
@@ -86,16 +86,16 @@ export default function WorkflowSubmissionPage() {
       </button>
 
       <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 p-4 space-y-3">
-        <p className="text-sm text-zinc-300">CSV Upload (plain text)</p>
+        <p className="text-sm text-white/80">CSV Upload (plain text)</p>
         <input
           type="file"
           accept=".csv,text/csv"
           onChange={(e) => onCsvFileChange(e.target.files?.[0] ?? null)}
-          className="text-sm text-zinc-300"
+          className="text-sm text-white/80"
         />
-        {csvName ? <p className="text-xs text-zinc-400">Loaded: {csvName}</p> : null}
+        {csvName ? <p className="text-xs text-white/70">Loaded: {csvName}</p> : null}
         <textarea
-          className="h-32 w-full rounded border border-zinc-700 bg-zinc-900 p-3 text-xs text-zinc-100"
+          className="h-32 w-full rounded border border-zinc-700 bg-zinc-900 p-3 text-xs text-white placeholder:text-white/60"
           placeholder="Or paste CSV text here"
           value={csvText}
           onChange={(e) => setCsvText(e.target.value)}
@@ -103,15 +103,15 @@ export default function WorkflowSubmissionPage() {
         <button
           onClick={onSubmitCsv}
           disabled={loading || !csvText.trim()}
-          className="rounded border px-4 py-2 text-sm disabled:opacity-50"
-          style={{ borderColor: "var(--fb-accent-border)", color: "var(--fb-accent)" }}
+          className="rounded border px-4 py-2 text-sm text-white disabled:opacity-50"
+          style={{ borderColor: "var(--fb-accent-border)" }}
         >
           {loading ? "Submitting..." : "Run CSV Analysis"}
         </button>
       </div>
 
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
-      {workflowId ? <p className="text-sm text-zinc-400">Workflow queued: {workflowId}</p> : null}
+      {workflowId ? <p className="text-sm text-white/70">Workflow queued: {workflowId}</p> : null}
     </div>
   );
 }

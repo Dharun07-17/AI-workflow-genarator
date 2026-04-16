@@ -43,7 +43,7 @@ export default function SecurityPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">Security</h2>
-        <p className="text-sm text-zinc-400">Enable Google Authenticator for login MFA.</p>
+        <p className="text-sm text-white/70">Enable Google Authenticator for login MFA.</p>
       </div>
 
       <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 p-4 space-y-3">
@@ -65,7 +65,7 @@ export default function SecurityPage() {
             Enable Email MFA
           </button>
         ) : (
-          <button onClick={disableMfa} className="rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-200">
+          <button onClick={disableMfa} className="rounded border border-zinc-700 px-3 py-1 text-sm text-white">
             Disable MFA
           </button>
         )}

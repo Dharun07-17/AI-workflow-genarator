@@ -122,6 +122,7 @@ class FizzPlanningService:
 
     def _enforce_tool_rules(self, tools: list[str], prompt: str) -> list[str]:
         lower = prompt.lower()
+        has_email_address = bool(re.search(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", prompt, flags=re.I))
 
         allow_reddit = ("reddit" in lower) or bool(re.search(r"r\/[a-z]", lower))
         allow_hn = ("hacker news" in lower) or ("hackernews" in lower) or ("tech news" in lower)
@@ -138,6 +139,8 @@ class FizzPlanningService:
             or "email me" in lower
             or "send me" in lower
             or "notify" in lower
+            # Common shorthand: "email <address>" or "send <address>".
+            or (has_email_address and ("email" in lower or "send" in lower))
         )
 
         filtered: list[str] = []
@@ -164,6 +167,7 @@ class FizzPlanningService:
 
     def _keyword_fallback(self, prompt: str) -> list[str]:
         lower = prompt.lower()
+        has_email_address = bool(re.search(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", prompt, flags=re.I))
         tools: list[str] = []
 
         if ".csv" in lower and ("./" in lower or "data/" in lower):
@@ -210,6 +214,7 @@ class FizzPlanningService:
             or "email me" in lower
             or "send me" in lower
             or "notify" in lower
+            or (has_email_address and ("email" in lower or "send" in lower))
         )
 
         if not tools:
