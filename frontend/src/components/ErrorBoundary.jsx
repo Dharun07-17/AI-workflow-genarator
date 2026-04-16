@@ -28,7 +28,7 @@
           style={{
             marginTop: 20,
             padding: "10px 20px",
-            background: "#4d9fff",
+            background: "#5a3b6f",
             color: "#fff",
             border: "none",
             borderRadius: 6,

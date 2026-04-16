@@ -3,7 +3,7 @@
 
   const toolColors = {
     reddit:     "#ff6314",
-    ollama:     "#4d9fff",
+    ollama:     "#5a3b6f",
     x:          "#1da1f2",
     twitter:    "#1da1f2",
     hackernews: "#ff6600",
@@ -11,7 +11,7 @@
     csv:        "#28a745",
     calendar:   "#ffc107",
     email:      "#dc3545",
-    websearch:  "#4285f4"
+    websearch:  "#5a3b6f"
   };
 
   function formatScore(n) {
@@ -28,11 +28,11 @@
           <div key={i} style={{ borderBottom: i < output.length - 1 ? `1px solid ${theme.border}` : "none", padding: "12px 0" }}>
             {item.type === "knowledge_graph" && (
               <div style={{ background: "#111", borderRadius: 6, padding: 12, marginBottom: 4 }}>
-                <span style={{ fontSize: 10, color: "#4285f4", fontFamily: "monospace", textTransform: "uppercase" }}>Knowledge Graph</span>
+                <span style={{ fontSize: 10, color: theme.accent, fontFamily: "monospace", textTransform: "uppercase" }}>Knowledge Graph</span>
                 <p style={{ color: theme.text, fontSize: 15, fontWeight: 700, margin: "4px 0" }}>{item.title}</p>
                 <p style={{ color: theme.muted, fontSize: 13, margin: 0, lineHeight: 1.5 }}>{item.description}</p>
                 {item.url && item.url !== "#" && (
-                  <a href={item.url} target="_blank" rel="noreferrer" style={{ color: "#4285f4", fontSize: 12, textDecoration: "none" }}>
+                  <a href={item.url} target="_blank" rel="noreferrer" style={{ color: theme.accent, fontSize: 12, textDecoration: "none" }}>
                     {item.source} →
                   </a>
                 )}
@@ -53,7 +53,7 @@
 
             {item.type === "organic" && (
               <div>
-                <a href={item.url} target="_blank" rel="noreferrer" style={{ color: "#4285f4", fontSize: 14, textDecoration: "none", display: "block", marginBottom: 4 }}>
+                <a href={item.url} target="_blank" rel="noreferrer" style={{ color: theme.accent, fontSize: 14, textDecoration: "none", display: "block", marginBottom: 4 }}>
                   {item.title}
                 </a>
                 <p style={{ color: "#4caf50", fontSize: 11, margin: "0 0 4px 0", fontFamily: "monospace" }}>{item.source}</p>
@@ -63,7 +63,7 @@
 
             {!item.type && item.title && (
               <div>
-                <a href={item.url} target="_blank" rel="noreferrer" style={{ color: "#4285f4", fontSize: 14, textDecoration: "none" }}>
+                <a href={item.url} target="_blank" rel="noreferrer" style={{ color: theme.accent, fontSize: 14, textDecoration: "none" }}>
                   {item.title}
                 </a>
                 {item.snippet && <p style={{ color: theme.muted, fontSize: 13, margin: "4px 0 0 0" }}>{item.snippet}</p>}

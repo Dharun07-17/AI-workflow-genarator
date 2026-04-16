@@ -35,7 +35,7 @@ export default function PromptInput({ onRun, loading, theme }) {
         type="submit"
         disabled={loading || !prompt.trim()}
         style={{
-          background:   (loading || !prompt.trim()) ? "#1e3a5f" : theme.accent,
+          background:   (loading || !prompt.trim()) ? "#2a2133" : theme.accent,
           color:        "#fff",
           border:       "none",
           borderRadius: 8,

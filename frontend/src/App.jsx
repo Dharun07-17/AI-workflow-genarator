@@ -1,16 +1,17 @@
-﻿import { useState, useRef } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import PromptInput  from "./components/PromptInput";
 import WorkflowPlan from "./components/WorkflowPlan";
 import ExecutionLog from "./components/ExecutionLog";
 import Results      from "./components/Results";
 
 const DARK = {
-  bg:      "#0f0f0f",
-  card:    "#1a1a1a",
+  bg:      "#0a0a0a",
+  bgGradient: "linear-gradient(145deg, #0b0b0b 0%, #242424 45%, #6f6f6f 100%)",
+  card:    "#171717",
   border:  "#2a2a2a",
   text:    "#e8e8e8",
   muted:   "#888",
-  accent:  "#4d9fff",
+  accent:  "#5a3b6f",
   success: "#69db7c",
   error:   "#ff6b6b",
   logBg:   "#0a0a0a"
@@ -70,17 +71,90 @@ export default function App() {
   const [loading,        setLoading]        = useState(false);
   const [error,          setError]          = useState(null);
   const [data,           setData]           = useState(null);
+  const [progress,       setProgress]       = useState(0);
+  const [showResults,    setShowResults]    = useState(false);
   const [showTips,       setShowTips]       = useState(true);
   const [uploadedFile,   setUploadedFile]   = useState(null);
   const [uploading,      setUploading]      = useState(false);
   const [uploadError,    setUploadError]    = useState(null);
   const fileInputRef = useRef(null);
+  const progressTimerRef = useRef(null);
+  const revealTimerRef = useRef(null);
+  const progressRef = useRef(0);
+
+  function stopProgressAnimation() {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  }
+
+  function stopRevealTimer() {
+    if (revealTimerRef.current) {
+      clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  }
+
+  function startProgressAnimation() {
+    stopProgressAnimation();
+    setProgress(2);
+    progressRef.current = 2;
+
+    progressTimerRef.current = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 84) return prev;
+        const step = Math.max(0.06, (84 - prev) * 0.018);
+        const next = Math.min(84, Number((prev + step).toFixed(2)));
+        progressRef.current = next;
+        return next;
+      });
+    }, 180);
+  }
+
+  async function rampProgressTo100() {
+    stopProgressAnimation();
+    const start = progressRef.current;
+    const duration = 1800;
+    const tick = 32;
+    const steps = Math.ceil(duration / tick);
+
+    await new Promise(resolve => {
+      let i = 0;
+      const timer = setInterval(() => {
+        i += 1;
+        const t = Math.min(1, i / steps);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const value = start + (100 - start) * eased;
+        const next = Number(value.toFixed(2));
+        progressRef.current = next;
+        setProgress(next);
+
+        if (t >= 1) {
+          clearInterval(timer);
+          progressRef.current = 100;
+          setProgress(100);
+          resolve();
+        }
+      }, tick);
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      stopProgressAnimation();
+      stopRevealTimer();
+    };
+  }, []);
 
   async function handleRun(prompt) {
     setLoading(true);
     setError(null);
     setData(null);
+    setShowResults(false);
     setShowTips(false);
+    stopRevealTimer();
+    startProgressAnimation();
 
     try {
       const res = await fetch("http://localhost:3001/api/workflow/run", {
@@ -91,9 +165,21 @@ export default function App() {
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Request failed");
+      await rampProgressTo100();
+      await new Promise(resolve => {
+        revealTimerRef.current = setTimeout(() => {
+          revealTimerRef.current = null;
+          resolve();
+        }, 3000);
+      });
       setData(json);
+      setTimeout(() => setShowResults(true), 10);
 
     } catch (err) {
+      stopProgressAnimation();
+      stopRevealTimer();
+      progressRef.current = 0;
+      setProgress(0);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -141,7 +227,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ ...styles.page, background: DARK.bg, color: DARK.text }}>
+    <div style={{ ...styles.page, backgroundColor: DARK.bg, backgroundImage: DARK.bgGradient, color: DARK.text }}>
       <div style={styles.container}>
 
         {/* Header */}
@@ -164,7 +250,7 @@ export default function App() {
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
               style={{
-                background:   uploading ? "#1a1a1a" : "#1e3a5f",
+                background:   uploading ? "#1a1a1a" : "#241a2f",
                 color:        DARK.accent,
                 border:       `1px solid ${DARK.accent}`,
                 borderRadius: 6,
@@ -237,8 +323,17 @@ export default function App() {
 
         {/* Loading Banner */}
         {loading && (
-          <div style={{ ...styles.banner, background: "#0d1a2e", border: `1px solid ${DARK.accent}`, color: DARK.accent }}>
-            ⟳ Running workflow — AI is planning and executing your request...
+          <div style={{ ...styles.banner, background: "#1b1424", border: `1px solid ${DARK.accent}`, color: DARK.accent }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span>⟳ Running workflow...</span>
+              <span style={{ fontFamily: "monospace", fontSize: 12 }}>{Math.round(progress)}%</span>
+            </div>
+            <div style={styles.progressTrack}>
+              <div style={{ ...styles.progressFill, background: DARK.accent, width: `${progress}%` }} />
+            </div>
+            <p style={{ margin: "10px 0 0 0", fontSize: 12, color: DARK.muted }}>
+              Planning steps, executing tools, and preparing response...
+            </p>
           </div>
         )}
 
@@ -284,9 +379,15 @@ export default function App() {
 
         {/* Results */}
         {data && (
-          <>
+          <div
+            style={{
+              ...styles.resultsWrap,
+              opacity: showResults ? 1 : 0,
+              transform: showResults ? "translateY(0)" : "translateY(10px)"
+            }}
+          >
             <button
-              onClick={() => { setData(null); setShowTips(true); }}
+              onClick={() => { setData(null); setShowTips(true); setShowResults(false); progressRef.current = 0; setProgress(0); }}
               style={{
                 marginTop:    16,
                 background:   "transparent",
@@ -305,7 +406,7 @@ export default function App() {
             <WorkflowPlan plan={data.plan} theme={DARK} />
             <ExecutionLog logs={data.logs} theme={DARK} />
             <Results      results={data.results} theme={DARK} />
-          </>
+          </div>
         )}
 
       </div>
@@ -320,5 +421,8 @@ const styles = {
   title:     { fontSize: 32, fontWeight: 700, margin: "0 0 8px 0", fontFamily: "system-ui, sans-serif" },
   subtitle:  { fontSize: 15, margin: 0, fontFamily: "system-ui, sans-serif" },
   uploadBox: { borderRadius: 8, padding: "12px 16px", marginTop: 12 },
-  banner:    { borderRadius: 8, padding: "14px 18px", marginTop: 16, fontSize: 14, fontFamily: "system-ui, sans-serif" }
+  banner:    { borderRadius: 8, padding: "14px 18px", marginTop: 16, fontSize: 14, fontFamily: "system-ui, sans-serif" },
+  progressTrack: { width: "100%", height: 8, borderRadius: 999, overflow: "hidden", background: "#2a2433", border: "1px solid #3a2f46" },
+  progressFill: { height: "100%", borderRadius: 999, transition: "width 240ms ease" },
+  resultsWrap: { transition: "opacity 420ms ease, transform 420ms ease" }
 };

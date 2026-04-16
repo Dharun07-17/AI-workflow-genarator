@@ -3,7 +3,7 @@
 
   const toolColors = {
     reddit:     "#ff6314",
-    ollama:     "#4d9fff",
+    ollama:     "#5a3b6f",
     x:          "#1da1f2",
     twitter:    "#1da1f2",
     hackernews: "#ff6600",
