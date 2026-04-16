@@ -1,20 +1,28 @@
+import base64
+import hashlib
+import json
+import os
+import re
+import time
+from datetime import datetime, timedelta
+from email.message import EmailMessage
 from uuid import uuid4
+import httpx
 from fastapi import APIRouter, Depends
 from jose import jwt
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, CurrentUser
 from app.auth.tokens import build_tokens, hash_token, decode_refresh
-import pyotp
-from app.auth.mfa import verify_totp, generate_totp_secret
 from app.core.config import settings
 from app.core.db import get_db
 from app.core.security import verify_password
 from app.middleware.exception_middleware import AppException
+from app.models.integration import Integration
 from app.models.refresh_token import RefreshToken
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import LoginRequest, RefreshRequest, MFARequest, MFACodeRequest
+from app.schemas.auth import LoginRequest, RefreshRequest, MFARequest, MFAEmailRequest
 from app.services.encryption_service import EncryptionService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -63,13 +71,21 @@ def mfa_verify(payload: MFARequest, db: Session = Depends(get_db)):
     user = user_repo.get_by_id(user_id)
     if not user:
         raise AppException("UNAUTHORIZED", "User not found", 401)
-    if not user.mfa_secret_encrypted:
-        raise AppException("FORBIDDEN", "MFA not configured", 403)
+    if not user.mfa_enabled:
+        raise AppException("FORBIDDEN", "MFA not enabled", 403)
+    if not user.mfa_otp_hash or not user.mfa_otp_expires_at:
+        raise AppException("FORBIDDEN", "OTP not requested", 403)
+    if user.mfa_otp_expires_at < _utc_now():
+        raise AppException("UNAUTHORIZED", "OTP expired", 401)
 
-    enc = EncryptionService()
-    secret = enc.decrypt(user.mfa_secret_encrypted)
-    if not verify_totp(secret, payload.otp_code):
+    expected = _hash_otp(user.id, payload.otp_code)
+    if expected != user.mfa_otp_hash:
         raise AppException("UNAUTHORIZED", "Invalid OTP", 401)
+
+    user.mfa_otp_hash = None
+    user.mfa_otp_expires_at = None
+    user.mfa_otp_email_encrypted = None
+    db.commit()
 
     refresh_repo = RefreshTokenRepository(db)
     access, refresh, jti, exp = build_tokens(user.id, user.role)
@@ -132,54 +148,176 @@ def me(user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_
     }
 
 
-@router.post("/mfa/setup")
-def mfa_setup(user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    user_repo = UserRepository(db)
-    row = user_repo.get_by_id(user.user_id)
-    if not row:
-        raise AppException("UNAUTHORIZED", "User not found", 401)
-    if row.mfa_enabled:
-        raise AppException("MFA_ALREADY_ENABLED", "MFA is already enabled", 400)
-
-    enc = EncryptionService()
-    if row.mfa_secret_encrypted:
-        secret = enc.decrypt(row.mfa_secret_encrypted)
-    else:
-        secret = generate_totp_secret()
-        row.mfa_secret_encrypted = enc.encrypt(secret)
-        db.commit()
-
-    try:
-        email = enc.decrypt(row.email_encrypted)
-    except Exception:
-        email = "user@flowberry.local"
-    issuer = settings.app_name
-    otpauth_url = pyotp.TOTP(secret).provisioning_uri(name=email, issuer_name=issuer)
-
-    return {
-        "success": True,
-        "data": {"secret": secret, "otpauth_url": otpauth_url},
-        "message": "MFA setup ready",
-    }
-
-
 @router.post("/mfa/enable")
-def mfa_enable(payload: MFACodeRequest, user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+def mfa_enable(user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
     user_repo = UserRepository(db)
     row = user_repo.get_by_id(user.user_id)
     if not row:
         raise AppException("UNAUTHORIZED", "User not found", 401)
-    if row.mfa_enabled:
-        return {"success": True, "data": {"mfa_enabled": True}, "message": "MFA already enabled"}
-    if not row.mfa_secret_encrypted:
-        raise AppException("MFA_NOT_SETUP", "MFA setup is required first", 400)
-
-    enc = EncryptionService()
-    secret = enc.decrypt(row.mfa_secret_encrypted)
-    if not verify_totp(secret, payload.otp_code):
-        raise AppException("UNAUTHORIZED", "Invalid OTP", 401)
-
     row.mfa_enabled = True
     db.commit()
 
     return {"success": True, "data": {"mfa_enabled": True}, "message": "MFA enabled"}
+
+
+@router.post("/mfa/disable")
+def mfa_disable(user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    user_repo = UserRepository(db)
+    row = user_repo.get_by_id(user.user_id)
+    if not row:
+        raise AppException("UNAUTHORIZED", "User not found", 401)
+    row.mfa_enabled = False
+    row.mfa_otp_hash = None
+    row.mfa_otp_expires_at = None
+    row.mfa_otp_email_encrypted = None
+    db.commit()
+    return {"success": True, "data": {"mfa_enabled": False}, "message": "MFA disabled"}
+
+
+@router.post("/mfa/request")
+def mfa_request(payload: MFAEmailRequest, db: Session = Depends(get_db)):
+    try:
+        mfa_payload = jwt.decode(payload.mfa_token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    except Exception as exc:
+        raise AppException("UNAUTHORIZED", "Invalid MFA token", 401) from exc
+
+    user_id = mfa_payload.get("sub")
+    user_repo = UserRepository(db)
+    user = user_repo.get_by_id(user_id)
+    if not user:
+        raise AppException("UNAUTHORIZED", "User not found", 401)
+    if not user.mfa_enabled:
+        raise AppException("FORBIDDEN", "MFA not enabled", 403)
+
+    email = payload.email.strip()
+    if not _is_valid_email(email):
+        raise AppException("INVALID_EMAIL", "Email address is invalid", 400)
+
+    otp_code = _generate_otp()
+    user.mfa_otp_hash = _hash_otp(user.id, otp_code)
+    user.mfa_otp_expires_at = _utc_now() + _otp_ttl()
+    user.mfa_otp_email_encrypted = EncryptionService().encrypt(email)
+    db.commit()
+
+    _send_mfa_email(db, user.id, email, otp_code)
+
+    return {"success": True, "data": {"sent_to": email, "expires_in_seconds": int(_otp_ttl().total_seconds())}, "message": "OTP sent"}
+
+
+def _send_mfa_email(db: Session, user_id: str, to_email: str, otp_code: str) -> None:
+    integration = (
+        db.query(Integration)
+        .filter(Integration.user_id == user_id, Integration.provider == "Gmail")
+        .order_by(Integration.updated_at.desc())
+        .first()
+    )
+    if not integration:
+        raise AppException("INTEGRATION_MISSING", "No Gmail integration found for user", 400)
+
+    enc = EncryptionService()
+    creds = _decrypt_credentials(enc, integration)
+    access_token = _get_access_token(db, integration, creds)
+
+    message = EmailMessage()
+    message["To"] = to_email
+    message["Subject"] = "Your Flowberry login code"
+    message.set_content(
+        f"Your one-time login code is: {otp_code}\n"
+        f"It expires in {int(_otp_ttl().total_seconds() / 60)} minutes."
+    )
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    with httpx.Client(timeout=20) as client:
+        resp = client.post(
+            "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+            headers=headers,
+            json={"raw": raw},
+        )
+        resp.raise_for_status()
+
+
+def _decrypt_credentials(enc: EncryptionService, integration: Integration) -> dict:
+    try:
+        raw = enc.decrypt(integration.credentials_encrypted)
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+    return {"oauth_json": "", "api_key": "", "oauth_tokens": {}}
+
+
+def _get_access_token(db: Session, integration: Integration, creds: dict) -> str:
+    tokens = creds.get("oauth_tokens") or {}
+    access_token = tokens.get("access_token")
+    expires_in = tokens.get("expires_in")
+    created_at = tokens.get("created_at")
+    if access_token and expires_in and created_at:
+        if time.time() < (created_at + int(expires_in) - 60):
+            return access_token
+
+    refresh_token = tokens.get("refresh_token")
+    oauth_json = creds.get("oauth_json") or ""
+    if not refresh_token or not oauth_json:
+        raise AppException("OAUTH_MISSING", "Gmail OAuth tokens missing; connect the integration first", 400)
+
+    try:
+        parsed = json.loads(oauth_json)
+    except Exception:
+        raise AppException("OAUTH_INVALID", "Gmail OAuth JSON invalid", 400)
+
+    config = parsed.get("web") or parsed.get("installed") or {}
+    client_id = config.get("client_id")
+    client_secret = config.get("client_secret")
+    token_uri = config.get("token_uri")
+    if not client_id or not client_secret or not token_uri:
+        raise AppException("OAUTH_INVALID", "Gmail OAuth JSON missing required fields", 400)
+
+    data = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+    }
+    with httpx.Client(timeout=20) as client:
+        resp = client.post(token_uri, data=data)
+        resp.raise_for_status()
+        payload = resp.json()
+
+    tokens.update(
+        {
+            "access_token": payload.get("access_token"),
+            "expires_in": payload.get("expires_in"),
+            "scope": payload.get("scope") or tokens.get("scope"),
+            "token_type": payload.get("token_type") or tokens.get("token_type"),
+            "created_at": int(time.time()),
+        }
+    )
+    creds["oauth_tokens"] = tokens
+    integration.credentials_encrypted = EncryptionService().encrypt(json.dumps(creds))
+    db.commit()
+
+    if not tokens.get("access_token"):
+        raise AppException("OAUTH_REFRESH_FAILED", "Failed to refresh Gmail access token", 400)
+    return tokens["access_token"]
+
+
+def _generate_otp() -> str:
+    return f"{int.from_bytes(os.urandom(3), 'big') % 1000000:06d}"
+
+
+def _hash_otp(user_id: str, otp_code: str) -> str:
+    return hashlib.sha256(f"{user_id}:{otp_code}".encode()).hexdigest()
+
+
+def _otp_ttl() -> timedelta:
+    return timedelta(minutes=5)
+
+
+def _utc_now():
+    return datetime.utcnow()
+
+
+def _is_valid_email(email: str) -> bool:
+    return re.match(r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$", email, flags=re.I) is not None

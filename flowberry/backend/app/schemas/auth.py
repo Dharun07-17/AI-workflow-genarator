@@ -22,6 +22,11 @@ class MFACodeRequest(BaseModel):
     otp_code: str = Field(min_length=6, max_length=6)
 
 
+class MFAEmailRequest(BaseModel):
+    mfa_token: str
+    email: str
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 
