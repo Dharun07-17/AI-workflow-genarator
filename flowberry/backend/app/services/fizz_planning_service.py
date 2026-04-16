@@ -106,6 +106,10 @@ class FizzPlanningService:
 
         tools = list(dict.fromkeys(tools))
 
+        # Enforce "mention-only" rules even if the AI planner returns extra tools.
+        # This prevents drift when users ask for "news" but the plan pulls reddit/hn/x anyway.
+        tools = self._enforce_tool_rules(tools, prompt)
+
         has_email = "email" in tools
         tools = [t for t in tools if t not in {"ollama", "email"}]
         tools.append("ollama")
@@ -115,6 +119,48 @@ class FizzPlanningService:
         if not tools:
             raise ValueError("No valid tools after normalization")
         return tools
+
+    def _enforce_tool_rules(self, tools: list[str], prompt: str) -> list[str]:
+        lower = prompt.lower()
+
+        allow_reddit = ("reddit" in lower) or bool(re.search(r"r\/[a-z]", lower))
+        allow_hn = ("hacker news" in lower) or ("hackernews" in lower) or ("tech news" in lower)
+        allow_x = ("twitter" in lower) or ("tweet" in lower) or ("x post" in lower) or ("x posts" in lower)
+
+        # Email intent: broaden slightly beyond fallback rules to cover "send it to <email>".
+        needs_email = (
+            "send to " in lower
+            or "send it to " in lower
+            or "email to " in lower
+            or "email it to " in lower
+            or "email this to " in lower
+            or "send via email" in lower
+            or "email me" in lower
+            or "send me" in lower
+            or "notify" in lower
+        )
+
+        filtered: list[str] = []
+        for t in tools:
+            if t == "reddit" and not allow_reddit:
+                continue
+            if t == "hackernews" and not allow_hn:
+                continue
+            if t == "x" and not allow_x:
+                continue
+            if t == "email" and not needs_email:
+                continue
+            filtered.append(t)
+
+        # If user clearly asks for news/current events and nothing else is selected,
+        # ensure websearch is present.
+        wants_fresh_info = bool(
+            re.search(r"\b(latest|today|current|breaking|headlines|news)\b", lower)
+        )
+        if wants_fresh_info and "websearch" not in filtered and not any(t in {"reddit", "hackernews", "x"} for t in filtered):
+            filtered.insert(0, "websearch")
+
+        return list(dict.fromkeys(filtered))
 
     def _keyword_fallback(self, prompt: str) -> list[str]:
         lower = prompt.lower()
@@ -158,6 +204,8 @@ class FizzPlanningService:
         needs_email = (
             "send to " in lower
             or "email to " in lower
+            or "email it to " in lower
+            or "email this to " in lower
             or "send via email" in lower
             or "email me" in lower
             or "send me" in lower

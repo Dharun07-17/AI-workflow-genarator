@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowberry-mcp-server"
+version = "0.1.0"
+description = "Flowberry MCP server (stdio) that calls the Flowberry API"
+requires-python = ">=3.10"
+dependencies = [
+  "mcp==1.27.0",
+  "httpx==0.28.1",
+  "starlette>=0.47.3,<0.48.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["flowberry_mcp_server*"]
+

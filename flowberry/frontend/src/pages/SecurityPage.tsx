@@ -57,7 +57,11 @@ export default function SecurityPage() {
         </p>
 
         {!mfaEnabled ? (
-          <button onClick={enableMfa} className="rounded bg-berry-700 px-3 py-1 text-sm font-medium text-white">
+          <button
+            onClick={enableMfa}
+            className="rounded px-3 py-1 text-sm font-medium text-white"
+            style={{ background: "var(--fb-accent)" }}
+          >
             Enable Email MFA
           </button>
         ) : (

@@ -161,10 +161,20 @@ export default function IntegrationsPage() {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <button disabled={loading} onClick={onCheck} className="rounded border border-berry-700 px-4 py-2 text-sm text-berry-700 disabled:opacity-50">
+          <button
+            disabled={loading}
+            onClick={onCheck}
+            className="rounded border px-4 py-2 text-sm disabled:opacity-50"
+            style={{ borderColor: "var(--fb-accent-border)", color: "var(--fb-accent)" }}
+          >
             {loading ? "Checking..." : "Check Integration"}
           </button>
-          <button disabled={loading} onClick={onCreate} className="rounded bg-berry-700 px-4 py-2 font-medium text-white disabled:opacity-50">
+          <button
+            disabled={loading}
+            onClick={onCreate}
+            className="rounded px-4 py-2 font-medium text-white disabled:opacity-50"
+            style={{ background: "var(--fb-accent)" }}
+          >
             {loading ? "Saving..." : "Add Integration"}
           </button>
         </div>
@@ -204,7 +214,8 @@ export default function IntegrationsPage() {
                 {item.has_oauth_json && ["Google Drive", "Gmail", "Google Calendar"].includes(item.provider) ? (
                   <button
                     onClick={() => onConnect(item.id)}
-                    className="rounded bg-berry-700 px-2 py-1 text-xs text-white"
+                    className="rounded px-2 py-1 text-xs text-white"
+                    style={{ background: "var(--fb-accent)" }}
                     disabled={connectingId === item.id}
                   >
                     {connectingId === item.id ? "Connecting..." : "Connect"}

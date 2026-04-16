@@ -25,7 +25,9 @@ export default function WorkflowDetailPage() {
       <h2 className="text-xl font-semibold">Workflow Detail</h2>
       <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 p-4">
         <p>ID: {workflow.data?.id}</p>
-        <p>Status: <span className="text-berry-700">{workflow.data?.status}</span></p>
+        <p>
+          Status: <span className="text-[color:var(--fb-accent)]">{workflow.data?.status}</span>
+        </p>
         <p className="text-sm text-zinc-400">Intent: {workflow.data?.intent_summary}</p>
       </div>
       <StepTimeline steps={steps.data ?? []} />
@@ -110,7 +112,8 @@ export default function WorkflowDetailPage() {
                 {step.status === "waiting_approval" ? (
                   <button
                     onClick={() => approveEmail(step.id)}
-                    className="rounded bg-berry-700 px-3 py-1 text-xs font-medium text-white"
+                    className="rounded px-3 py-1 text-xs font-medium text-white"
+                    style={{ background: "var(--fb-accent)" }}
                   >
                     Approve Send
                   </button>

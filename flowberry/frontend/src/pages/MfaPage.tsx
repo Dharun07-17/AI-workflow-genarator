@@ -42,30 +42,40 @@ export default function MfaPage() {
   }
 
   return (
-    <div className="mx-auto mt-20 max-w-md rounded-lg border border-zinc-700 bg-zinc-900/70 p-6">
-      <h2 className="mb-4 text-xl font-semibold">Email Verification</h2>
-      <div className="space-y-2">
+    <div className="mx-auto mt-20 max-w-md rounded-lg border border-zinc-700 bg-zinc-900/70 p-6 text-white">
+      <h2 className="mb-4 text-xl font-semibold text-white">Email Verification</h2>
+      <div className="space-y-2 text-white">
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded border border-zinc-700 bg-zinc-800 p-2"
+          className="w-full rounded border border-zinc-700 bg-zinc-800 p-2 text-white placeholder:text-white/60"
           placeholder="Enter email to receive OTP"
         />
-        <button onClick={sendCode} className="w-full rounded border border-berry-700 p-2 text-sm text-berry-700">
+        <button
+          onClick={sendCode}
+          className="w-full rounded border p-2 text-sm text-white"
+          style={{ borderColor: "var(--fb-accent-border)" }}
+        >
           Send OTP
         </button>
-        {sentTo ? <p className="text-xs text-zinc-400">Sent to: {sentTo}</p> : null}
+        {sentTo ? <p className="text-xs text-white/70">Sent to: {sentTo}</p> : null}
       </div>
       <input
         value={otpCode}
         onChange={(e) => setOtpCode(e.target.value)}
         maxLength={6}
-        className="w-full rounded border border-zinc-700 bg-zinc-800 p-2"
+        className="w-full rounded border border-zinc-700 bg-zinc-800 p-2 text-white placeholder:text-white/60"
         placeholder="Enter 6-digit code"
       />
       {error ? <p className="mt-2 text-sm text-red-400">{error}</p> : null}
       {message ? <p className="mt-2 text-sm text-emerald-300">{message}</p> : null}
-      <button onClick={submit} className="mt-4 w-full rounded bg-berry-700 p-2 font-medium">Verify</button>
+      <button
+        onClick={submit}
+        className="mt-4 w-full rounded p-2 font-medium text-white"
+        style={{ background: "var(--fb-accent)" }}
+      >
+        Verify
+      </button>
     </div>
   );
 }

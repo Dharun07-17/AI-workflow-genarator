@@ -1,0 +1,5 @@
+# Note: `mcp` currently pulls Starlette. Pin to a FastAPI-compatible version
+# to avoid breaking other Python environments where FastAPI is installed.
+mcp==1.27.0
+httpx==0.28.1
+starlette>=0.47.3,<0.48.0

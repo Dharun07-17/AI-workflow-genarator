@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import time
 from datetime import datetime, timedelta
 from email.message import EmailMessage
@@ -16,16 +17,30 @@ from app.auth.dependencies import get_current_user, CurrentUser
 from app.auth.tokens import build_tokens, hash_token, decode_refresh
 from app.core.config import settings
 from app.core.db import get_db
-from app.core.security import verify_password
+from app.core.security import verify_password, hash_password
 from app.middleware.exception_middleware import AppException
 from app.models.integration import Integration
 from app.models.refresh_token import RefreshToken
+from app.models.user import User
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import LoginRequest, RefreshRequest, MFARequest, MFAEmailRequest
+from app.schemas.auth import LoginRequest, RefreshRequest, MFARequest, MFAEmailRequest, GoogleLoginRequest
 from app.services.encryption_service import EncryptionService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.get("/public-config")
+def public_config():
+    """Public, non-secret auth config for the frontend."""
+    return {
+        "success": True,
+        "data": {
+            "google_oauth_client_id": settings.google_oauth_client_id,
+            "google_oauth_enabled": bool(settings.google_oauth_client_id),
+        },
+        "message": "Auth config",
+    }
 
 
 @router.post("/login")
@@ -57,6 +72,94 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         )
     )
     return {"success": True, "data": {"access_token": access, "refresh_token": refresh, "token_type": "bearer"}, "message": "Login successful"}
+
+
+@router.post("/google/login")
+def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
+    client_id = settings.google_oauth_client_id
+    if not client_id:
+        raise AppException("GOOGLE_OAUTH_NOT_CONFIGURED", "Google Sign-In is not configured", 400)
+
+    # Verify the Google ID token using Google's tokeninfo endpoint.
+    # This avoids adding extra dependencies and is OK for low-volume server-side login.
+    # For high-volume production, consider verifying against Google's JWKS locally with caching.
+    with httpx.Client(timeout=10) as client:
+        resp = client.get("https://oauth2.googleapis.com/tokeninfo", params={"id_token": payload.credential})
+
+    if resp.status_code != 200:
+        raise AppException("GOOGLE_OAUTH_FAILED", "Invalid Google credential", 401)
+
+    info = resp.json() or {}
+    if info.get("aud") != client_id:
+        raise AppException("GOOGLE_OAUTH_FAILED", "Google token audience mismatch", 401)
+
+    iss = info.get("iss")
+    if iss not in {"accounts.google.com", "https://accounts.google.com"}:
+        raise AppException("GOOGLE_OAUTH_FAILED", "Google token issuer mismatch", 401)
+
+    # tokeninfo returns email_verified as string "true"/"false" in many cases.
+    email_verified = info.get("email_verified")
+    if email_verified not in {True, "true", "True"}:
+        raise AppException("GOOGLE_OAUTH_FAILED", "Google email not verified", 401)
+
+    email = (info.get("email") or "").strip()
+    if not email or not _is_valid_email(email):
+        raise AppException("GOOGLE_OAUTH_FAILED", "Google account email missing/invalid", 401)
+
+    name = (info.get("name") or "").strip() or None
+
+    enc = EncryptionService()
+    user_repo = UserRepository(db)
+    refresh_repo = RefreshTokenRepository(db)
+
+    user = user_repo.get_by_email_hash(enc.hash_for_lookup(email))
+    if not user:
+        # Create a user record. Password is random since this is an OAuth identity.
+        name_encrypted = enc.encrypt(name) if name else None
+        user = user_repo.create(
+            User(
+                id=str(uuid4()),
+                email_encrypted=enc.encrypt(email),
+                email_hash=enc.hash_for_lookup(email),
+                phone_encrypted=None,
+                name_encrypted=name_encrypted,
+                password_hash=hash_password(secrets.token_urlsafe(32)),
+                role="user",
+                mfa_enabled=False,
+                mfa_secret_encrypted=None,
+                mfa_otp_hash=None,
+                mfa_otp_expires_at=None,
+                mfa_otp_email_encrypted=None,
+                is_active=True,
+            )
+        )
+
+    if not user.is_active:
+        raise AppException("UNAUTHORIZED", "User is disabled", 401)
+
+    if user.mfa_enabled:
+        mfa_token = jwt.encode({"sub": user.id, "typ": "mfa"}, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+        return {
+            "success": True,
+            "data": {"requires_mfa": True, "mfa_token": mfa_token},
+            "message": "MFA required",
+        }
+
+    access, refresh, jti, exp = build_tokens(user.id, user.role)
+    refresh_repo.create(
+        RefreshToken(
+            id=str(uuid4()),
+            user_id=user.id,
+            token_hash=hash_token(refresh),
+            jti=jti,
+            expires_at=exp,
+        )
+    )
+    return {
+        "success": True,
+        "data": {"access_token": access, "refresh_token": refresh, "token_type": "bearer"},
+        "message": "Login successful",
+    }
 
 
 @router.post("/mfa/verify")

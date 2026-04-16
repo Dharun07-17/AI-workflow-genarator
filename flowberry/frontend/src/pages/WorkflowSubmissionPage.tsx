@@ -79,7 +79,8 @@ export default function WorkflowSubmissionPage() {
       <button
         onClick={onSubmit}
         disabled={loading}
-        className="rounded bg-berry-700 px-4 py-2 font-medium text-white disabled:opacity-50"
+        className="rounded px-4 py-2 font-medium text-white disabled:opacity-50"
+        style={{ background: "var(--fb-accent)" }}
       >
         {loading ? "Submitting..." : "Run with Fizz"}
       </button>
@@ -102,7 +103,8 @@ export default function WorkflowSubmissionPage() {
         <button
           onClick={onSubmitCsv}
           disabled={loading || !csvText.trim()}
-          className="rounded border border-berry-700 px-4 py-2 text-sm text-berry-700 disabled:opacity-50"
+          className="rounded border px-4 py-2 text-sm disabled:opacity-50"
+          style={{ borderColor: "var(--fb-accent-border)", color: "var(--fb-accent)" }}
         >
           {loading ? "Submitting..." : "Run CSV Analysis"}
         </button>

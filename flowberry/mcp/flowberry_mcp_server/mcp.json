@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "flowberry": {
+      "type": "stdio",
+      "command": "C:/Users/jeeva/ai-workflow-generator/flowberry/mcp/flowberry_mcp_server/.venv/Scripts/python.exe",
+      "args": ["-u", "-m", "flowberry_mcp_server"],
+      "env": {
+        "FLOWBERRY_API_BASE_URL": "http://localhost:8000/api/v1",
+        "FLOWBERRY_ACCESS_TOKEN": "PASTE_ACCESS_TOKEN_HERE",
+        "FLOWBERRY_REFRESH_TOKEN": "OPTIONAL_REFRESH_TOKEN_HERE"
+      }
+    }
+  }
+}

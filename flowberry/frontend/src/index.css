@@ -2,9 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --fb-accent: #5a3b6f;
+  --fb-accent-soft: rgba(90, 59, 111, 0.25);
+  --fb-accent-border: rgba(90, 59, 111, 0.6);
+  --fb-background: linear-gradient(145deg, #0c0c0c 0%, #2c2c2c 45%, #6f6f6f 100%);
+}
+
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  background: linear-gradient(145deg, #0c0c0c 0%, #2c2c2c 45%, #6f6f6f 100%);
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--fb-background);
   min-height: 100vh;
+}
+
+textarea {
+  resize: none;
 }

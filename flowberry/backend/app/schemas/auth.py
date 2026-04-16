@@ -31,6 +31,10 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class GoogleLoginRequest(BaseModel):
+    credential: str
+
+
 class AuthResponse(BaseModel):
     success: bool = True
     data: TokenPair | dict
