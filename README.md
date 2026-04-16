@@ -1,4 +1,4 @@
-# AI Workflow Generator
+# Flowberry AI-Workflow automation
 
 A full-stack app that converts natural language workflow descriptions into structured JSON execution plans and runs them step-by-step.
 
