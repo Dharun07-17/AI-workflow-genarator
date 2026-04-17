@@ -7,6 +7,7 @@ from app.models.job import Job
 from app.repositories.workflow_repository import WorkflowRepository
 from app.repositories.log_repository import LogRepository
 from app.services.queue_publisher_service import QueuePublisherService
+from app.services.workflow_naming_service import suggest_workflow_name
 from app.events.workflow_observer import WorkflowObserver
 
 QUEUE_MAP = {
@@ -30,6 +31,7 @@ class WorkflowExecutionService:
         workflow = Workflow(
             id=str(uuid4()),
             user_id=user_id,
+            display_name=suggest_workflow_name(plan.get("intent_summary") or prompt),
             original_prompt=prompt,
             intent_summary=plan.get("intent_summary"),
             status="queued",

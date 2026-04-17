@@ -31,6 +31,15 @@ class WorkflowRepository:
             query = query.filter(Workflow.user_id == user_id)
         return query.first()
 
+    def list_recent_for_user(self, user_id: str, limit: int = 50) -> list[Workflow]:
+        return (
+            self.db.query(Workflow)
+            .filter(Workflow.user_id == user_id)
+            .order_by(Workflow.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
     def list_steps(self, workflow_id: str) -> list[WorkflowStep]:
         return self.db.query(WorkflowStep).filter(WorkflowStep.workflow_id == workflow_id).order_by(WorkflowStep.step_order.asc()).all()
 

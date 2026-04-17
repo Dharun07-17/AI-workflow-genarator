@@ -2,6 +2,7 @@ import json
 from uuid import uuid4
 from sqlalchemy.orm import Session
 from app.models.execution_log import ExecutionLog
+from app.models.workflow import Workflow
 
 
 class LogRepository:
@@ -37,3 +38,13 @@ class LogRepository:
 
     def list_for_workflow(self, workflow_id: str) -> list[ExecutionLog]:
         return self.db.query(ExecutionLog).filter(ExecutionLog.workflow_id == workflow_id).order_by(ExecutionLog.created_at.asc()).all()
+
+    def list_recent_for_user(self, user_id: str, limit: int = 120, workflow_id: str | None = None):
+        q = (
+            self.db.query(ExecutionLog, Workflow)
+            .join(Workflow, ExecutionLog.workflow_id == Workflow.id)
+            .filter(Workflow.user_id == user_id)
+        )
+        if workflow_id:
+            q = q.filter(ExecutionLog.workflow_id == workflow_id)
+        return q.order_by(ExecutionLog.created_at.desc()).limit(limit).all()

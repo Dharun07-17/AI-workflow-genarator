@@ -1,5 +1,5 @@
 import json
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, CurrentUser
@@ -11,6 +11,8 @@ from app.schemas.workflow import WorkflowCreateRequest, WorkflowCsvCreateRequest
 from app.services.fizz_planning_service import FizzPlanningService
 from app.services.queue_publisher_service import QueuePublisherService
 from app.services.workflow_execution_service import WorkflowExecutionService
+from app.services.workflow_naming_service import suggest_workflow_name
+from app.services.workflow_auto_namer import auto_rename_workflow
 from app.events.listeners import observer_singleton
 from app.models.job import Job
 from uuid import uuid4
@@ -18,9 +20,35 @@ from uuid import uuid4
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 
 
+@router.get("/recent")
+def list_recent_workflows(
+    limit: int = 50,
+    user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    limit = max(1, min(int(limit), 200))
+    rows = WorkflowRepository(db).list_recent_for_user(user.user_id, limit=limit)
+    return {
+        "success": True,
+        "data": [
+            {
+                "id": w.id,
+                "status": w.status,
+                "name": (w.display_name or "").strip() or suggest_workflow_name(w.intent_summary or w.original_prompt),
+                "intent_summary": w.intent_summary,
+                "created_at": w.created_at,
+                "updated_at": w.updated_at,
+            }
+            for w in rows
+        ],
+        "message": "Recent workflows fetched",
+    }
+
+
 @router.post("")
 async def create_workflow(
     payload: WorkflowCreateRequest,
+    background_tasks: BackgroundTasks,
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -35,12 +63,15 @@ async def create_workflow(
     data = await executor.create_and_dispatch(user.user_id, payload.prompt, plan)
     await publisher.close()
 
+    background_tasks.add_task(auto_rename_workflow, data["workflow_id"])
+
     return {"success": True, "data": data, "message": "Workflow created"}
 
 
 @router.post("/csv")
 async def create_csv_workflow(
     payload: WorkflowCsvCreateRequest,
+    background_tasks: BackgroundTasks,
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -63,6 +94,8 @@ async def create_csv_workflow(
     data = await executor.create_and_dispatch(user.user_id, payload.prompt, plan)
     await publisher.close()
 
+    background_tasks.add_task(auto_rename_workflow, data["workflow_id"])
+
     return {"success": True, "data": data, "message": "CSV workflow created"}
 
 
@@ -81,6 +114,7 @@ def get_workflow(
         "success": True,
         "data": {
             "id": workflow.id,
+            "name": (workflow.display_name or "").strip() or suggest_workflow_name(workflow.intent_summary or workflow.original_prompt),
             "status": workflow.status,
             "intent_summary": workflow.intent_summary,
             "created_at": workflow.created_at,

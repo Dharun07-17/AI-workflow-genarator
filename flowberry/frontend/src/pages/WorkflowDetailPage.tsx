@@ -22,7 +22,7 @@ export default function WorkflowDetailPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Workflow Detail</h2>
+      <h2 className="text-xl font-semibold">{workflow.data?.name ?? "Workflow Detail"}</h2>
       <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 p-4">
         <p>ID: {workflow.data?.id}</p>
         <p>

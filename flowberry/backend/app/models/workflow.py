@@ -9,6 +9,7 @@ class Workflow(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    display_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     original_prompt: Mapped[str] = mapped_column(Text, nullable=False)
     intent_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="queued", index=True)

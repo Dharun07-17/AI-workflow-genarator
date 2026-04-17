@@ -3,7 +3,6 @@ import LoginPage from "./pages/LoginPage";
 import MfaPage from "./pages/MfaPage";
 import WorkflowSubmissionPage from "./pages/WorkflowSubmissionPage";
 import WorkflowDetailPage from "./pages/WorkflowDetailPage";
-import WorkflowLogsPage from "./pages/WorkflowLogsPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -19,7 +18,6 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/workflows" element={<WorkflowSubmissionPage />} />
           <Route path="/workflows/:id" element={<WorkflowDetailPage />} />
-          <Route path="/logs" element={<WorkflowLogsPage />} />
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/security" element={<Navigate to="/settings" replace />} />
