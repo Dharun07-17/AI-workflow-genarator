@@ -3,7 +3,8 @@
 # Flowberry
 ---
 Flowberry is an **event-driven AI workflow automation platform** where natural language requests are converted into structured, multi-step workflows (e.g., search → summarize → email → calendar). Execution is handled asynchronously via a **queue-based worker system** with full observability, retries, and idempotent processing.
-
+---
+[▶️ Watch Demo](./export-1776377603693.mp4)
 ---
 <img width="572" height="428" alt="Screenshot 2026-04-17 035752" src="https://github.com/user-attachments/assets/0c451aa4-c1f2-47ab-84bf-63d693652357" />
 <img width="857" height="846" alt="Screenshot 2026-04-17 035715" src="https://github.com/user-attachments/assets/fb1f5ffb-8f0a-469e-a45d-6b5829da18ab" />
